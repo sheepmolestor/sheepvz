@@ -178,7 +178,7 @@ function gameLoop(delta){
   }
   render();
   //console.log(app.ticker.deltaMS);
-  socket.emit('done',socket.id,app.ticker.deltaMS);
+  socket.emit('done',socket.id,app.ticker.elapsedMS);
 }
 
 function play(delta) {
