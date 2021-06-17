@@ -10,7 +10,7 @@ inventory.push("pea");
 inventory.push("cabbage");
 inventory.push("sunflower");
 
-let sun=100;// temporary
+let sun=1000;// temporary
 let plants = {
 pea:{
 		hp:200,
@@ -20,7 +20,7 @@ pea:{
 		home: 0,
 		lane: 0,
 		cost:100,
-		cooldown:5,
+		cooldown:1,
 		cooldownTimer:0,
 		shooter:true,
 		name:"pea",
@@ -51,18 +51,28 @@ sunflower:{
 	name:"sunflower",
 }
 };
+let socketQueue = [];
+socket.on("shovel",(x,y) => {
+	//grid[x][y]=0;
+	socketQueue.push(["shovel",x,y]);
+});
 socket.on("connect", ()=>{
 	console.log("we shilling");
 	socket.emit('init',GRID_HEIGHT);
 });
 
 socket.on('plant', (x,y,type) => {
-	spawnPlant(x,y,type);
-	console.log("solobolo");
+	//spawnPlant(x,y,type);
+	socketQueue.push(["plant",x,y,type]);
+});
+
+socket.on('refund', (s,id) => {
+	if (socket.id==id) {sun += s; console.log("refund "+s);}
 });
 
 socket.on('zombie',(lane,type) => {
-	spawnZombie(lane,type);
+	//spawnZombie(lane,type);
+	socketQueue.push(["zombie",lane,type]);
 });
 socket.on('reset',() => {
 	enemies = [];
@@ -82,18 +92,26 @@ socket.on('reset',() => {
 var ready = false;
 
 var time=0;
+//var bufferTime=0;
+//var buffer = false;
 
 socket.on('done', (t,s) => {
 	if (ready) {
-		console.log("OOOOOOOOOOOPS");
-	}
-	ready = true;
-	time=t;
+		//if (buffer) {
+			console.log("OOOOOOOOOOOPS");
+		//}
+		//buffer = true;
+		//bufferTime = t;
+	} //else {
+		ready = true;
+		time=t;
+		socketQueue.push(['done']);
+	//}
 	score.text=Math.round(s/1000);
 	highest.text=Math.max(highest.text,Math.round(s/1000));
-	if (t>100) {
+	//if (t>100) {
 		console.log(t);
-	}
+	//}
 })
 
 
@@ -192,7 +210,7 @@ function shoot(plant) {
 	}
 }
 let inventorySelected = -1;
-let enemyTypes = ["normal","cone","bucket","football"];
+let enemyTypes = ["normal"];//,"cone","bucket","football"];
 
 	document.addEventListener('keypress', (event) => {
 	  var name = event.key;
@@ -223,20 +241,26 @@ app.stage.addChild(highest);
 		var x = Math.floor(event.offsetX/squareWidth);
 		var y = Math.floor(event.offsetY/squareHeight);
 		console.log(x+" "+y);
-		if (x<GRID_WIDTH&&y<GRID_HEIGHT&&inventorySelected!=-1&&plants[inventory[inventorySelected]].cooldownTimer<=0&&sun>=plants[inventory[inventorySelected]].cost){
-			sendPlant(x,y,inventory[inventorySelected]);
-			plants[inventory[inventorySelected]].cooldownTimer=plants[inventory[inventorySelected]].cooldown;
-			sun-=plants[inventory[inventorySelected]].cost;
-		}
-		if (x<inventory.length&&y>=GRID_HEIGHT) {
-			if (inventorySelected!=x) {
-				inventorySelected = x;
-			} else {
-				inventorySelected = -1;
+		if (event.button==0) {
+			if (x<GRID_WIDTH&&y<GRID_HEIGHT&&inventorySelected!=-1&&plants[inventory[inventorySelected]].cooldownTimer<=0&&sun>=plants[inventory[inventorySelected]].cost){
+				if (!grid[x][y]) {sendPlant(x,y,inventory[inventorySelected]);
+				plants[inventory[inventorySelected]].cooldownTimer=plants[inventory[inventorySelected]].cooldown;
+				sun-=plants[inventory[inventorySelected]].cost;}
 			}
-		}
-		if (x>=10&&y>=10) {
-			socket.emit('reset');
+			if (x<inventory.length&&y>=GRID_HEIGHT) {
+				if (inventorySelected!=x) {
+					inventorySelected = x;
+				} else {
+					inventorySelected = -1;
+				}
+			}
+			if (x>=10&&y>=10) {
+				socket.emit('reset');
+			}
+		} else if (event.button==2) {
+			if (x<GRID_WIDTH&&y<GRID_HEIGHT) {
+				socket.emit("shovel",x,y);
+			}
 		}
 	}, false);
 
@@ -247,17 +271,45 @@ app.stage.addChild(highest);
   app.ticker.add(delta => gameLoop(delta));
   // ok but like tick length could be desynced...
 
-var updated = false;
+var first = true;
 function gameLoop(delta){
 
   //Update the current game state:
-  if (ready) { //ready to update
+  /*if (ready) { //ready to update
   	state(delta);
   	ready = false;
-  }
+  	first = true;
+
+  }*/
   render();
   //console.log(app.ticker.deltaMS);
-  socket.emit('done',socket.id,app.ticker.elapsedMS,!ready); //ready to confirm
+  for (i in socketQueue) {
+  		switch (socketQueue[i][0]) {
+  			case 'plant':
+  				spawnPlant(socketQueue[i][1],socketQueue[i][2],socketQueue[i][3]);
+  				break;
+  			case 'shovel':
+  				grid[socketQueue[i][1]][socketQueue[i][2]]=0;
+  				break;
+  			case 'zombie':
+  				spawnZombie(socketQueue[i][1],socketQueue[i][2]);
+  				break;
+  			case 'done':
+  				if (ready) {
+	  				state(delta);
+			  		ready = false;
+			  		first = true;
+			  	}
+			  	break;
+  			default:
+  				break;
+  		}
+  	}
+  	socketQueue = [];
+  socket.emit('done',socket.id,app.ticker.elapsedMS,first); //ready to confirm
+  if (socket.id) {
+	  	first = false;
+	}
 }
 
 function play(delta) {
@@ -457,10 +509,7 @@ function spawnPlant(x,y,type) {
 	grid[x][y].shooter=p.shooter;
 	grid[x][y].name=p.name;
 	grid[x][y].home = x;
-	console.log(x + " " + y + grid[0][0].lane);
 	grid[x][y].lane = y;
-
-	console.log(x + " " + y + grid[0][0].lane);
 	/*{
 		hp:200,
 		damage:20,
@@ -479,5 +528,5 @@ function spawnPlant(x,y,type) {
 }
 
 function sendPlant(x,y,type) {
-	socket.emit('plant',x,y,type);
+	socket.emit('plant',x,y,type,plants[type].cost);
 }
