@@ -73,9 +73,8 @@ socket.on('reset',() => {
 	for (j=0; j<GRID_HEIGHT; j++) {
 		temp.push(0);
 	}
-}
 	grid.push(temp);
-	sun=100; // temporary
+	}sun=100; // temporary
 	for (i in inventory) {
 		plants[inventory[i]].cooldownTimer=0;
 	}
