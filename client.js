@@ -10,7 +10,7 @@ inventory.push("pea");
 inventory.push("cabbage");
 inventory.push("sunflower");
 
-let sun=1000;// temporary
+let sun=100;// temporary
 let plants = {
 pea:{
 		hp:200,
@@ -20,7 +20,7 @@ pea:{
 		home: 0,
 		lane: 0,
 		cost:100,
-		cooldown:1,
+		cooldown:5,
 		cooldownTimer:0,
 		shooter:true,
 		name:"pea",
@@ -136,21 +136,21 @@ let zombies = {
 		name:"normal",
 	},
 	cone: {
-		hp: 200,//700,
+		hp: 700,
 		speed: 1/5,
 		lane: 0,
 		dist: 0,
 		name:"cone",
 	},
 	bucket: {
-		hp: 200,//1500,
+		hp: 1500,
 		speed: 1/5,
 		lane: 0,
 		dist: 0,
 		name:"bucket",
 	},
 	football: {
-		hp:200,//2000,
+		hp:2000,
 		speed:2/5,
 		lane:0,
 		dist:0,
