@@ -270,8 +270,8 @@ function play(delta) {
   		//enemies.splice(i,1);
   		toBeSpliced.push(i);
   	} else if (enemies[i].dist>GRID_WIDTH) {
-  		//socket.emit('reset');
-  		toBeSpliced.push(i);
+  		socket.emit('reset');
+  		//toBeSpliced.push(i);
   	}
   }
   toBeSpliced.reverse();
