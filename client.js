@@ -27,13 +27,13 @@ pea:{
 	},
 
 cabbage:{
-	hp:200,
-		damage:40,
-		rate:2,
+		hp:200,
+		damage:100,
+		rate:1,
 		timer:0,
 		home: 0,
 		lane: 0,
-		cost:100,
+		cost:500,
 		cooldown:5,
 		cooldownTimer:0,
 		shooter:true,
@@ -45,7 +45,7 @@ sunflower:{
 	timer:10,
 	rate:10,
 	cost:100,
-	cooldown:30,
+	cooldown:20,
 		cooldownTimer:0,
 	shooter:false,
 	name:"sunflower",
@@ -178,7 +178,7 @@ function shoot(plant) {
 			});
 			break;
 		case "sunflower":
-			sun+=50;
+			sun+=25;
 			break;
 		default:
 			projectiles.push({
