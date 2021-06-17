@@ -10,7 +10,7 @@ inventory.push("pea");
 inventory.push("cabbage");
 inventory.push("sunflower");
 
-let sun=1000;// temporary
+let sun=100;// temporary
 let plants = {
 pea:{
 		hp:200,
@@ -20,7 +20,7 @@ pea:{
 		home: 0,
 		lane: 0,
 		cost:100,
-		cooldown:1,
+		cooldown:5,
 		cooldownTimer:0,
 		shooter:true,
 		name:"pea",
