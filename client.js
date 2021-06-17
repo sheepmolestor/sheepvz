@@ -45,7 +45,7 @@ sunflower:{
 	timer:10,
 	rate:10,
 	cost:100,
-	cooldown:10,
+	cooldown:30,
 		cooldownTimer:0,
 	shooter:false,
 	name:"sunflower",
