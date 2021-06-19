@@ -88,7 +88,7 @@ socket.on('plant', (x,y,type,id,tick) => {
 			socket.emit("refund",type,id);
 		}
 	} else {
-		tickQueue.push(["plant",x,y,type,tick]);
+		//tickQueue.push(["plant",x,y,type,tick]);
 		//spawnPlant(x,y,type);
 	}
 });
@@ -101,7 +101,10 @@ socket.on('refund', (type) => {
 
 socket.on('zombie',(lane,type,tick) => {
 	if (host) {//spawnZombie(lane,type);
+		spawnZombie(lane,type);
 		tickQueue.push(["zombie",lane,type,tick]);
+	} else {
+		
 	}
 });
 socket.on('reset',() => {
@@ -135,11 +138,11 @@ socket.on('done', (t,tick,s,q) => {
 		//bufferTime = t;
 	//} //else {
 		//ready = true;
-		time=t;
+		//time=t;
 	if (host) {
 		//tickQueue.push(['done',tick]);
 	} else {
-		socketQueue.push(q);
+		socketQueue.push([q,t]);
 	}
 	//}
 	score.text=Math.round(s/1000);
@@ -185,6 +188,9 @@ let zombies = {
 		speed: 1/5,
 		lane: 0,
 		dist: 0,
+		attackDamage:20,
+		attackTimer:0,
+		attackSpeed:1/4,
 		name:"normal",
 	},
 	cone: {
@@ -192,6 +198,9 @@ let zombies = {
 		speed: 1/5,
 		lane: 0,
 		dist: 0,
+		attackDamage:20,
+		attackTimer:0,
+		attackSpeed:1/4,
 		name:"cone",
 	},
 	bucket: {
@@ -199,6 +208,9 @@ let zombies = {
 		speed: 1/5,
 		lane: 0,
 		dist: 0,
+		attackDamage:20,
+		attackTimer:0,
+		attackSpeed:1/4,
 		name:"bucket",
 	},
 	football: {
@@ -206,6 +218,9 @@ let zombies = {
 		speed:2/5,
 		lane:0,
 		dist:0,
+		attackDamage:20,
+		attackTimer:0,
+		attackSpeed:1/4,
 		name:"football",
 	}
 }
@@ -329,15 +344,21 @@ function gameLoop(delta){
 	}*/
 	//console.log(app.ticker.deltaMS);
 	if (host) {
+		time=app.ticker.elapsedMS;
+		console.log(time);
 		state(delta);
   		//tickCount=socketQueue[0][1];
 		tickQueue.push(['done',tickCount]);
-		socket.emit('done',app.ticker.elapsedMS,tickCount,tickQueue); //ready to confirm
+		socket.emit('done',time,tickCount,tickQueue); //ready to confirm
 		tickQueue=[];
 		tickCount++;
 	} else {
+		//console.log(socketQueue);
 	//var toBeSpliced=[];
-  	for (i in socketQueue[0]) {
+	if (socketQueue[0]) {
+	time = socketQueue[0][1];
+	console.log(time);
+  	for (i in socketQueue[0][0]) {
 	//if (socketQueue[0][0]=='done') {
   	//	state(delta);
   	//	tickCount=socketQueue[0][1];
@@ -350,15 +371,15 @@ function gameLoop(delta){
   	}*/
 	  	//while (socketQueue[0][socketQueue[0].length-1]==tickCount) {
 		  	//if (socketQueue[0][socketQueue[0].length-1]==tickCount) {
-		  		switch (socketQueue[0][i][0]) {
+		  		switch (socketQueue[0][0][i][0]) {
 		  			case 'plant':
-		  				spawnPlant(socketQueue[0][i][1],socketQueue[0][i][2],socketQueue[0][i][3]);
+		  				spawnPlant(socketQueue[0][0][i][1],socketQueue[0][0][i][2],socketQueue[0][0][i][3]);
 		  				break;
 		  			case 'shovel':
-		  				grid[socketQueue[0][i][1]][socketQueue[0][i][2]]=0;
+		  				grid[socketQueue[0][0][i][1]][socketQueue[0][0][i][2]]=0;
 		  				break;
 		  			case 'zombie':
-		  				spawnZombie(socketQueue[0][i][1],socketQueue[0][i][2]);
+		  				spawnZombie(socketQueue[0][0][i][1],socketQueue[0][0][i][2]);
 		  				break;
 		  			case 'done':
 		  				state(delta);
@@ -372,6 +393,7 @@ function gameLoop(delta){
 		  	//}
 	  	}
 	  	socketQueue.splice(0,1);
+	  }
   	}
   	render();
 
@@ -384,7 +406,22 @@ function play(delta) {
 	let toBeSpliced = [];
 
   for (i in enemies) {
-  	enemies[i].dist+=enemies[i].speed*time/1000;//app.ticker.deltaMS/1000;
+  	//enemies[i].dist+=enemies[i].speed*time/1000;//app.ticker.deltaMS/1000;
+  	let enemyX = Math.floor(GRID_WIDTH-enemies[i].dist);
+  	if (enemyX>=0&&enemyX<GRID_WIDTH) {
+  		if (grid[enemyX][enemies[i].lane]) {
+  			if (enemies[i].attackTimer<=0) {
+  				grid[enemyX][enemies[i].lane].hp-=enemies[i].attackDamage;
+ 				enemies[i].attackTimer+=enemies[i].attackSpeed;
+  			} else {
+  				enemies[i].attackTimer-=time/1000;
+  			}
+  		} else {
+  			enemies[i].dist+=enemies[i].speed*time/1000;
+  		}
+  	} else {
+  		enemies[i].dist+=enemies[i].speed*time/1000;
+  	}
   	if (enemies[i].hp<=0) {
   		//enemies.splice(i,1);
   		toBeSpliced.push(i);
@@ -400,25 +437,32 @@ function play(delta) {
   for (i in grid) {
   	for (j in grid[i]) {
   		if (grid[i][j]!=0) {
-  			if(!grid[i][j].shooter) {
-  				if (grid[i][j].timer<=0) {
-  					shoot(grid[i][j]); //temporary fix
-  					grid[i][j].timer = grid[i][j].rate;
-  				} else {
-  					grid[i][j].timer-=time/1000;
+  			if (grid[i][j].hp<=0) {
+  				socket.emit("shovel",i,j,host);
+  				if (host) {
+  					grid[i][j]=0;
   				}
-	  			continue;
-	  		} else {
-	  			if (grid[i][j].timer<=0) {
-		  			for (k in enemies) {
-		  				if (enemies[k].lane==j&&(GRID_WIDTH-0.5-enemies[k].dist)>i) { // may be different depending on plant type
-		  					shoot(grid[i][j]);
-		  					grid[i][j].timer += grid[i][j].rate;
-		  					break;
-		  				}
+  			} else {
+	  			if(!grid[i][j].shooter) {
+	  				if (grid[i][j].timer<=0) {
+	  					shoot(grid[i][j]); //temporary fix
+	  					grid[i][j].timer = grid[i][j].rate;
+	  				} else {
+	  					grid[i][j].timer-=time/1000;
+	  				}
+		  			continue;
+		  		} else {
+		  			if (grid[i][j].timer<=0) {
+			  			for (k in enemies) {
+			  				if (enemies[k].lane==j&&(GRID_WIDTH-0.5-enemies[k].dist)>i) { // may be different depending on plant type
+			  					shoot(grid[i][j]);
+			  					grid[i][j].timer += grid[i][j].rate;
+			  					break;
+			  				}
+			  			}
+		  			} else {
+		  				grid[i][j].timer-=time/1000;//app.ticker.deltaMS/1000;
 		  			}
-	  			} else {
-	  				grid[i][j].timer-=time/1000;//app.ticker.deltaMS/1000;
 	  			}
   			}
   		}
