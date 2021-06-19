@@ -4,6 +4,7 @@ let enemies = [];
 let projectiles = [];
 
 let grid = [];
+let host = false;
 
 let inventory=[];
 inventory.push("pea");
@@ -13,31 +14,31 @@ inventory.push("sunflower");
 let sun=100;// temporary
 let plants = {
 pea:{
-		hp:200,
-		damage:20,
-		rate:1,
-		timer:0,
-		home: 0,
-		lane: 0,
-		cost:100,
-		cooldown:5,
-		cooldownTimer:0,
-		shooter:true,
-		name:"pea",
-	},
+	hp:200,
+	damage:20,
+	rate:1,
+	timer:0,
+	home: 0,
+	lane: 0,
+	cost:100,
+	cooldown:5,
+	cooldownTimer:0,
+	shooter:true,
+	name:"pea",
+},
 
 cabbage:{
-		hp:200,
-		damage:100,
-		rate:1,
-		timer:0,
-		home: 0,
-		lane: 0,
-		cost:500,
-		cooldown:5,
-		cooldownTimer:0,
-		shooter:true,
-		name:"cabbage",
+	hp:200,
+	damage:100,
+	rate:1,
+	timer:0,
+	home: 0,
+	lane: 0,
+	cost:500,
+	cooldown:5,
+	cooldownTimer:0,
+	shooter:true,
+	name:"cabbage",
 },
 sunflower:{
 	hp:200,
@@ -46,33 +47,62 @@ sunflower:{
 	rate:10,
 	cost:100,
 	cooldown:20,
-		cooldownTimer:0,
+	cooldownTimer:0,
 	shooter:false,
 	name:"sunflower",
 }
 };
 let socketQueue = [];
-socket.on("shovel",(x,y) => {
-	//grid[x][y]=0;
-	socketQueue.push(["shovel",x,y]);
+socket.on("shovel",(x,y,tick) => {
+	
+	if (host) {
+		grid[x][y]=0;
+		tickQueue.push(["shovel",x,y]);
+		//socket.emit('shovel',x,y,host,tickCount);
+	} else {
+		socketQueue.push(["shovel",x,y,tick]);
+	}
+});
+socket.on("host", () => {
+	host=true;
+	console.log("yoking");
+});
+socket.on("disconnect", ()=> {
+	host=false;
 });
 socket.on("connect", ()=>{
 	console.log("we shilling");
 	socket.emit('init',GRID_HEIGHT);
 });
-
-socket.on('plant', (x,y,type) => {
-	//spawnPlant(x,y,type);
-	socketQueue.push(["plant",x,y,type]);
+socket.on('confirm',(type)=> {
+	plants[type].cooldownTimer=plants[type].cooldown;
+	sun-=plants[type].cost;
+});
+socket.on('plant', (x,y,type,id,tick) => {
+	if (host) {
+		if (!grid[x][y]) {
+			spawnPlant(x,y,type);
+			tickQueue.push(["plant",x,y,type,tick]);
+			//sendPlant(x,y,inventory[inventorySelected],host)
+		} else {
+			socket.emit("refund",type,id);
+		}
+	} else {
+		tickQueue.push(["plant",x,y,type,tick]);
+		//spawnPlant(x,y,type);
+	}
 });
 
-socket.on('refund', (s,id) => {
-	if (socket.id==id) {sun += s; console.log("refund "+s);}
+socket.on('refund', (type) => {
+	sun += plants[type].cost;
+	plants[type].cooldownTimer=0;
+	console.log("refund "+plants[type].cost);
 });
 
-socket.on('zombie',(lane,type) => {
-	//spawnZombie(lane,type);
-	socketQueue.push(["zombie",lane,type]);
+socket.on('zombie',(lane,type,tick) => {
+	if (host) {//spawnZombie(lane,type);
+		tickQueue.push(["zombie",lane,type,tick]);
+	}
 });
 socket.on('reset',() => {
 	enemies = [];
@@ -92,25 +122,30 @@ socket.on('reset',() => {
 var ready = false;
 
 var time=0;
+var tickCount=0;
 //var bufferTime=0;
 //var buffer = false;
 
-socket.on('done', (t,s) => {
-	if (ready) {
+socket.on('done', (t,tick,s,q) => {
+	//if (ready) {
 		//if (buffer) {
-			console.log("OOOOOOOOOOOPS");
+	//		console.log("OOOOOOOOOOOPS");
 		//}
 		//buffer = true;
 		//bufferTime = t;
-	} //else {
-		ready = true;
+	//} //else {
+		//ready = true;
 		time=t;
-		socketQueue.push(['done']);
+	if (host) {
+		//tickQueue.push(['done',tick]);
+	} else {
+		socketQueue.push(q);
+	}
 	//}
 	score.text=Math.round(s/1000);
 	highest.text=Math.max(highest.text,Math.round(s/1000));
 	//if (t>100) {
-		console.log(t);
+		//console.log(t);
 	//}
 })
 
@@ -243,9 +278,17 @@ app.stage.addChild(highest);
 		console.log(x+" "+y);
 		if (event.button==0) {
 			if (x<GRID_WIDTH&&y<GRID_HEIGHT&&inventorySelected!=-1&&plants[inventory[inventorySelected]].cooldownTimer<=0&&sun>=plants[inventory[inventorySelected]].cost){
-				if (!grid[x][y]) {sendPlant(x,y,inventory[inventorySelected]);
-				plants[inventory[inventorySelected]].cooldownTimer=plants[inventory[inventorySelected]].cooldown;
-				sun-=plants[inventory[inventorySelected]].cost;}
+				if (!grid[x][y]) {
+					plants[inventory[inventorySelected]].cooldownTimer=plants[inventory[inventorySelected]].cooldown;
+					sun-=plants[inventory[inventorySelected]].cost;
+					//sendPlant(x,y,inventory[inventorySelected],host);
+					if (host) {
+						spawnPlant(x,y,inventory[inventorySelected]);
+						tickQueue.push(['plant',x,y,inventory[inventorySelected]]);
+					} else {
+						sendPlant(x,y,inventory[inventorySelected],host);
+					}
+				}
 			}
 			if (x<inventory.length&&y>=GRID_HEIGHT) {
 				if (inventorySelected!=x) {
@@ -255,11 +298,13 @@ app.stage.addChild(highest);
 				}
 			}
 			if (x>=10&&y>=10) {
-				socket.emit('reset');
+				if (host) {
+					socket.emit('reset');
+				}
 			}
 		} else if (event.button==2) {
 			if (x<GRID_WIDTH&&y<GRID_HEIGHT) {
-				socket.emit("shovel",x,y);
+				socket.emit("shovel",x,y,host);
 			}
 		}
 	}, false);
@@ -272,44 +317,67 @@ app.stage.addChild(highest);
   // ok but like tick length could be desynced...
 
 var first = true;
+var tickQueue = [];
 function gameLoop(delta){
 
-  //Update the current game state:
-  /*if (ready) { //ready to update
-  	state(delta);
-  	ready = false;
-  	first = true;
+	//Update the current game state:
+	/*if (ready) { //ready to update
+		state(delta);
+		ready = false;
+		first = true;
 
-  }*/
-  render();
-  //console.log(app.ticker.deltaMS);
-  for (i in socketQueue) {
-  		switch (socketQueue[i][0]) {
-  			case 'plant':
-  				spawnPlant(socketQueue[i][1],socketQueue[i][2],socketQueue[i][3]);
-  				break;
-  			case 'shovel':
-  				grid[socketQueue[i][1]][socketQueue[i][2]]=0;
-  				break;
-  			case 'zombie':
-  				spawnZombie(socketQueue[i][1],socketQueue[i][2]);
-  				break;
-  			case 'done':
-  				if (ready) {
-	  				state(delta);
-			  		ready = false;
-			  		first = true;
-			  	}
-			  	break;
-  			default:
-  				break;
-  		}
+	}*/
+	//console.log(app.ticker.deltaMS);
+	if (host) {
+		state(delta);
+  		//tickCount=socketQueue[0][1];
+		tickQueue.push(['done',tickCount]);
+		socket.emit('done',app.ticker.elapsedMS,tickCount,tickQueue); //ready to confirm
+		tickQueue=[];
+		tickCount++;
+	} else {
+	//var toBeSpliced=[];
+  	for (i in socketQueue[0]) {
+	//if (socketQueue[0][0]=='done') {
+  	//	state(delta);
+  	//	tickCount=socketQueue[0][1];
+  	//	socketQueue.splice(0,1);
+  	//	//toBeSpliced.push(i);
+  	//}
+  	/*if (host) {
+  		socketQueue.
+		socket.emit('done',app.ticker.elapsedMS,tickCount); //ready to confirm
+  	}*/
+	  	//while (socketQueue[0][socketQueue[0].length-1]==tickCount) {
+		  	//if (socketQueue[0][socketQueue[0].length-1]==tickCount) {
+		  		switch (socketQueue[0][i][0]) {
+		  			case 'plant':
+		  				spawnPlant(socketQueue[0][i][1],socketQueue[0][i][2],socketQueue[0][i][3]);
+		  				break;
+		  			case 'shovel':
+		  				grid[socketQueue[0][i][1]][socketQueue[0][i][2]]=0;
+		  				break;
+		  			case 'zombie':
+		  				spawnZombie(socketQueue[0][i][1],socketQueue[0][i][2]);
+		  				break;
+		  			case 'done':
+		  				state(delta);
+		  				//console.log("what");
+					  	break;
+		  			default:
+		  				break;
+		  		}
+		  		//socketQueue.splice(0,1);
+		  		//toBeSpliced.push(i);
+		  	//}
+	  	}
+	  	socketQueue.splice(0,1);
   	}
-  	socketQueue = [];
-  socket.emit('done',socket.id,app.ticker.elapsedMS,first); //ready to confirm
-  if (socket.id) {
-	  	first = false;
-	}
+  	render();
+
+ 	/*if (socket.id) {
+		first = false;
+	}*/
 }
 
 function play(delta) {
@@ -527,6 +595,6 @@ function spawnPlant(x,y,type) {
 	};*/
 }
 
-function sendPlant(x,y,type) {
-	socket.emit('plant',x,y,type,plants[type].cost);
+function sendPlant(x,y,type,h) {
+	socket.emit('plant',x,y,type,plants[type].cost,h,socket.id,tickCount);
 }
