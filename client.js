@@ -131,9 +131,12 @@ socket.on('reset',() => {
 	grid.push(temp);
 	}sun=100; // temporary
 	for (i in inventory) {
-		plants[inventory[i]].cooldownTimer=plants[inventory[i]].cooldown;
+		plants[inventory[i]].cooldownTimer=plants[inventory[i]].cooldownTimer;
 	}
 });
+socket.on("sun", (amt) => {
+	sun+=amt;
+})
 var ready = false;
 
 var time=0;
@@ -331,6 +334,9 @@ app.stage.addChild(highest);
 			}
 		} else if (event.button==2) {
 			if (x<GRID_WIDTH&&y<GRID_HEIGHT) {
+				if (host) {
+					grid[x][y]=0;
+				}
 				socket.emit("shovel",x,y,host);
 			}
 		}
