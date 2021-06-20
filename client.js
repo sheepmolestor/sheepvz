@@ -10,46 +10,58 @@ let inventory=[];
 inventory.push("pea");
 inventory.push("cabbage");
 inventory.push("sunflower");
+inventory.push("walnut");
 
 let sun=100;// temporary
 let plants = {
 pea:{
-	hp:200,
+	hp:300,
 	damage:20,
 	rate:1,
 	timer:0,
 	home: 0,
 	lane: 0,
 	cost:100,
-	cooldown:5,
-	cooldownTimer:0,
+	cooldown:3,
+	cooldownTimer:3,
 	shooter:true,
 	name:"pea",
 },
 
 cabbage:{
-	hp:200,
+	hp:300,
 	damage:100,
 	rate:1,
 	timer:0,
 	home: 0,
 	lane: 0,
 	cost:500,
-	cooldown:5,
-	cooldownTimer:0,
+	cooldown:3,
+	cooldownTimer:3,
 	shooter:true,
 	name:"cabbage",
 },
 sunflower:{
-	hp:200,
+	hp:300,
 	damage:0,
 	timer:10,
 	rate:10,
 	cost:100,
-	cooldown:20,
+	cooldown:12,
 	cooldownTimer:0,
 	shooter:false,
 	name:"sunflower",
+},
+walnut:{
+	hp:3000,
+	damage:0,
+	timer:0,
+	rate:0,
+	cost:50,
+	cooldown:20,
+	cooldownTimer:20,
+	shooter:false,
+	name:"walnut",
 }
 };
 let socketQueue = [];
@@ -119,7 +131,7 @@ socket.on('reset',() => {
 	grid.push(temp);
 	}sun=100; // temporary
 	for (i in inventory) {
-		plants[inventory[i]].cooldownTimer=0;
+		plants[inventory[i]].cooldownTimer=plants[inventory[i]].cooldown;
 	}
 });
 var ready = false;
@@ -188,7 +200,7 @@ let zombies = {
 		speed: 1/5,
 		lane: 0,
 		dist: 0,
-		attackDamage:20,
+		attackDamage:50,
 		attackTimer:0,
 		attackSpeed:1/4,
 		name:"normal",
@@ -198,7 +210,7 @@ let zombies = {
 		speed: 1/5,
 		lane: 0,
 		dist: 0,
-		attackDamage:20,
+		attackDamage:50,
 		attackTimer:0,
 		attackSpeed:1/4,
 		name:"cone",
@@ -208,7 +220,7 @@ let zombies = {
 		speed: 1/5,
 		lane: 0,
 		dist: 0,
-		attackDamage:20,
+		attackDamage:50,
 		attackTimer:0,
 		attackSpeed:1/4,
 		name:"bucket",
@@ -218,7 +230,7 @@ let zombies = {
 		speed:2/5,
 		lane:0,
 		dist:0,
-		attackDamage:20,
+		attackDamage:50,
 		attackTimer:0,
 		attackSpeed:1/4,
 		name:"football",
@@ -426,8 +438,8 @@ function play(delta) {
   		//enemies.splice(i,1);
   		toBeSpliced.push(i);
   	} else if (enemies[i].dist>GRID_WIDTH) {
-  		socket.emit('reset');
-  		//toBeSpliced.push(i);
+  		//socket.emit('reset');
+  		toBeSpliced.push(i);
   	}
   }
   toBeSpliced.reverse();
@@ -444,11 +456,15 @@ function play(delta) {
   				}
   			} else {
 	  			if(!grid[i][j].shooter) {
-	  				if (grid[i][j].timer<=0) {
-	  					shoot(grid[i][j]); //temporary fix
-	  					grid[i][j].timer = grid[i][j].rate;
-	  				} else {
-	  					grid[i][j].timer-=time/1000;
+	  				switch(grid[i][j].name) {
+	  					case 'sunflower':
+			  				if (grid[i][j].timer<=0) {
+			  					shoot(grid[i][j]); //temporary fix
+			  					grid[i][j].timer = grid[i][j].rate;
+			  				} else {
+			  					grid[i][j].timer-=time/1000;
+			  				}
+			  				break;
 	  				}
 		  			continue;
 		  		} else {
@@ -515,15 +531,22 @@ function render() {
 			if (grid[i][j]!=0) {
 				var pType = grid[i][j].name;
 				graphics.lineStyle(2,0x000000);
-				if (pType=="pea") {
-					graphics.beginFill(0x0000FF);
-				} else if (pType == "cabbage") {
-					graphics.beginFill(0x00FF00);
-				} else if (pType == "sunflower") {
-					graphics.beginFill(0xFFFF00);
-				} else {
-					graphics.beginFill(0x880000);
-				}
+				switch (pType) {
+			case 'pea':
+				graphics.beginFill(0x0000FF);
+				break;
+			case "cabbage":
+				graphics.beginFill(0x00FF00);
+				break;
+			case "sunflower":
+				graphics.beginFill(0xFFFF00);
+				break;
+			case "walnut":
+				graphics.beginFill(0x964B00);
+				break;
+			default:
+				graphics.beginFill(0x880000);
+			}
 				graphics.drawCircle(squareWidth/2+i*squareWidth,squareHeight/2+j*squareHeight,squareWidth/4);
 				graphics.endFill();
 			}
@@ -539,15 +562,22 @@ function render() {
 			graphics.drawRect(i*squareWidth, GRID_HEIGHT*squareHeight, squareWidth, squareHeight*2);
 			graphics.endFill();
 		var pType = inventory[i];
-		if (pType=="pea") {
-					graphics.beginFill(0x0000FF);
-				} else if (pType == "cabbage") {
-					graphics.beginFill(0x00FF00);
-				} else if (pType == "sunflower") {
-					graphics.beginFill(0xFFFF00);
-				} else {
-					graphics.beginFill(0x880000);
-				}
+		switch (pType) {
+			case 'pea':
+				graphics.beginFill(0x0000FF);
+				break;
+			case "cabbage":
+				graphics.beginFill(0x00FF00);
+				break;
+			case "sunflower":
+				graphics.beginFill(0xFFFF00);
+				break;
+			case "walnut":
+				graphics.beginFill(0x964B00);
+				break;
+			default:
+				graphics.beginFill(0x880000);
+			}
 				graphics.drawCircle(squareWidth/2+i*squareWidth,squareHeight+GRID_HEIGHT*squareHeight,squareWidth/4);
 				graphics.endFill();
 		graphics.lineStyle(0);
