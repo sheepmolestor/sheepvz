@@ -325,7 +325,8 @@ let zombies = {
 		name:"normal",
 	},
 	cone: {
-		hp: 560,
+		hp: 190,
+		armour:370,
 		speed: 1/5,
 		lane: 0,
 		dist: 0,
@@ -335,7 +336,8 @@ let zombies = {
 		name:"cone",
 	},
 	bucket: {
-		hp: 1290,
+		hp: 190,
+		armour:1100,
 		speed: 1/5,
 		lane: 0,
 		dist: 0,
@@ -345,7 +347,8 @@ let zombies = {
 		name:"bucket",
 	},
 	football: {
-		hp:2390,
+		hp:190,
+		armour:2200,
 		speed:2/5,
 		lane:0,
 		dist:0,
@@ -545,7 +548,7 @@ function shoot(plant) {
 	}
 }
 let inventorySelected = -1;
-let enemyTypes = ["screen","umbrella"];//,"flyingCone","flyingBucket"];//,"cone","bucket","football"];
+let enemyTypes = ["screen"];//,"flyingCone","flyingBucket"];//,"cone","bucket","football"];
 
 	document.addEventListener('keypress', (event) => {
 	  var name = event.key;
@@ -891,7 +894,11 @@ function play(delta) {
 				  					}
 				  				}
 				  				if (toBeHit!=-1) {
-				  					enemies[toBeHit].hp-=grid[i][j].damage;
+				  					if (enemies[toBeHit].armour>0) {
+				  						enemies[toBeHit].armour-=grid[i][j].damage;
+				  					} else {
+				  						enemies[toBeHit].hp-=grid[i][j].damage;
+				  					}
 				  					if (enemies[toBeHit].hp<0&&(enemies[toBeHit].name=="flying"||enemies[toBeHit].name=="flyingCone"||enemies[toBeHit].name=="flyingBucket")) {
 				  						enemies.splice(toBeHit,1);
 				  					}
@@ -999,7 +1006,12 @@ function play(delta) {
 			  					}
 			  				}
 		  				} else {
-				  			enemies[toBeHit[j]].hp-=projectiles[i].damage;
+		  					if (enemies[toBeHit[j]].armour>0) {
+		  						enemies[toBeHit[j]].armour-=projectiles[i].damage;
+		  					} else {
+		  						enemies[toBeHit[j]].hp-=projectiles[i].damage;
+		  					}
+				  			//enemies[toBeHit[j]].hp-=projectiles[i].damage;
 				  			if (!enemies[toBeHit[j]].stun) {
 					  			enemies[toBeHit[j]].stun=true;
 					  			enemies[toBeHit[j]].stunTimer=100;
@@ -1039,7 +1051,12 @@ function play(delta) {
 			  		}
 			  	}
 			  	if (toBeHit!=-1) {
-			  		enemies[toBeHit].hp-=projectiles[i].damage;
+			  		if (enemies[toBeHit].armour>0) {
+  						enemies[toBeHit].armour-=projectiles[i].damage;
+  					} else {
+  						enemies[toBeHit].hp-=projectiles[i].damage;
+  					}
+			  		//enemies[toBeHit].hp-=projectiles[i].damage;
 			  		if (projectiles[i].name=="butter") {
 			  			enemies[toBeHit].stun=true;
 			  			enemies[toBeHit].stunTimer=Math.max(enemies[toBeHit].stunTimer,4000);
@@ -1080,7 +1097,12 @@ function play(delta) {
 			  				enemies[toBeHit].hp-=projectiles[i].damage;
 			  			}
 			  		} else {
-			  			enemies[toBeHit].hp-=projectiles[i].damage;
+			  			if (enemies[toBeHit].armour>0) {
+	  						enemies[toBeHit].armour-=projectiles[i].damage;
+	  					} else {
+	  						enemies[toBeHit].hp-=projectiles[i].damage;
+	  					}
+			  			//enemies[toBeHit].hp-=projectiles[i].damage;
 			  		}
 			  		toBeSpliced.push(i);
 			  	}
@@ -1156,7 +1178,17 @@ function render() {
 					default:
 						graphics.beginFill(0x880000);
 				}
-				graphics.drawCircle(squareWidth/2+i*squareWidth,squareHeight/2+j*squareHeight,squareWidth/4);
+				if (pType=="walnut") {
+					if (grid[i][j].hp>plants[grid[i][j].name].hp*2/3) {
+						graphics.drawCircle(squareWidth/2+i*squareWidth,squareHeight/2+j*squareHeight,squareWidth/4);
+					} else if (grid[i][j].hp>plants[grid[i][j].name].hp*1/3) {
+						graphics.arc(squareWidth/2+i*squareWidth,squareHeight/2+j*squareHeight,squareWidth/4,-Math.PI/3,Math.PI+Math.PI/3);
+					} else {
+						graphics.arc(squareWidth/2+i*squareWidth,squareHeight/2+j*squareHeight,squareWidth/4,-Math.PI/6,Math.PI+Math.PI/6);
+					}
+				} else {
+					graphics.drawCircle(squareWidth/2+i*squareWidth,squareHeight/2+j*squareHeight,squareWidth/4);
+				}
 				graphics.endFill();
 			}
 		}
@@ -1244,32 +1276,73 @@ function render() {
 					graphics.beginFill(0xFF8800);
 					graphics.moveTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2+squareHeight*enemies[i].lane);
 					graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth+squareWidth*enemies[i].radius,squareHeight/2+squareHeight*enemies[i].lane);
-					graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth,squareHeight*enemies[i].lane);
+					graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth,squareHeight/2+squareHeight*enemies[i].lane-squareWidth*enemies[i].radius);
 					graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2+squareHeight*enemies[i].lane);
 					graphics.closePath();
 					graphics.endFill();
 					break;
 				case "cone":
-					graphics.lineStyle(2,0x000000);
-					graphics.beginFill(0xFF8800);
-					graphics.moveTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2+squareHeight*enemies[i].lane);
-					graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth+squareWidth*enemies[i].radius,squareHeight/2+squareHeight*enemies[i].lane);
-					graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth,squareHeight*enemies[i].lane);
-					graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2+squareHeight*enemies[i].lane);
-					graphics.closePath();
-					graphics.endFill();
+					if (enemies[i].armour>zombies[enemies[i].name].armour*2/3) {
+						graphics.lineStyle(2,0x000000);
+						graphics.beginFill(0xFF8800);
+						graphics.moveTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2+squareHeight*enemies[i].lane);
+						graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth+squareWidth*enemies[i].radius,squareHeight/2+squareHeight*enemies[i].lane);
+						graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth,squareHeight/2+squareHeight*enemies[i].lane-squareWidth*enemies[i].radius);
+						graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2+squareHeight*enemies[i].lane);
+						graphics.closePath();
+						graphics.endFill();
+					} else if (enemies[i].armour>zombies[enemies[i].name].armour*1/3) {
+						graphics.lineStyle(2,0x000000);
+						graphics.beginFill(0xFF8800);
+						graphics.moveTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2+squareHeight*enemies[i].lane);
+						graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth+squareWidth*enemies[i].radius,squareHeight/2+squareHeight*enemies[i].lane);
+						graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth+squareWidth*enemies[i].radius/3,squareHeight/2+squareHeight*enemies[i].lane-squareWidth*enemies[i].radius+squareWidth*enemies[i].radius/3);
+						graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius/3,squareHeight/2+squareHeight*enemies[i].lane-squareWidth*enemies[i].radius+squareWidth*enemies[i].radius/3);
+						//graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth,squareHeight*enemies[i].lane);
+						graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2+squareHeight*enemies[i].lane);
+						graphics.closePath();
+						graphics.endFill();
+					} else if (enemies[i].armour>0) {
+						graphics.lineStyle(2,0x000000);
+						graphics.beginFill(0xFF8800);
+						graphics.moveTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2+squareHeight*enemies[i].lane);
+						graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth+squareWidth*enemies[i].radius,squareHeight/2+squareHeight*enemies[i].lane);
+						graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth+2*squareWidth*enemies[i].radius/3,squareHeight/2+squareHeight*enemies[i].lane-squareWidth*enemies[i].radius+2*squareWidth*enemies[i].radius/3);
+						graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-2*squareWidth*enemies[i].radius/3,squareHeight/2+squareHeight*enemies[i].lane-squareWidth*enemies[i].radius+2*squareWidth*enemies[i].radius/3);
+						//graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth,squareHeight*enemies[i].lane);
+						graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2+squareHeight*enemies[i].lane);
+						graphics.closePath();
+						graphics.endFill();
+					}
 					break;
 				case "flyingBucket":
-				case "bucket":
 					graphics.lineStyle(2,0x000000);
 					graphics.beginFill(0x888888);
 					graphics.drawRect(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2-squareWidth*enemies[i].radius+squareHeight*enemies[i].lane,2*squareWidth*enemies[i].radius,squareWidth*enemies[i].radius);
 					graphics.endFill();
 					break;
+				case "bucket":
+					graphics.lineStyle(2,0x000000);
+					graphics.beginFill(0x888888);
+					if (enemies[i].armour>zombies[enemies[i].name].armour*2/3) {
+						graphics.drawRect(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2-squareWidth*enemies[i].radius+squareHeight*enemies[i].lane,2*squareWidth*enemies[i].radius,squareWidth*enemies[i].radius);
+					} else if (enemies[i].armour>zombies[enemies[i].name].armour*1/3) {
+						graphics.drawRect(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2-squareWidth*enemies[i].radius*2/3+squareHeight*enemies[i].lane,2*squareWidth*enemies[i].radius,squareWidth*enemies[i].radius*2/3);
+					} else if (enemies[i].armour>0) {
+						graphics.drawRect(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2-squareWidth*enemies[i].radius/3+squareHeight*enemies[i].lane,2*squareWidth*enemies[i].radius,squareWidth*enemies[i].radius/3);
+					}
+					graphics.endFill();
+					break;
 				case "football":
 					graphics.lineStyle(2,0x000000);
 					graphics.beginFill(0xFF0000);
-					graphics.drawRect(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2-squareWidth*enemies[i].radius+squareHeight*enemies[i].lane,2*squareWidth*enemies[i].radius,squareWidth*enemies[i].radius);
+					if (enemies[i].armour>zombies[enemies[i].name].armour*2/3) {
+						graphics.drawRect(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2-squareWidth*enemies[i].radius+squareHeight*enemies[i].lane,2*squareWidth*enemies[i].radius,squareWidth*enemies[i].radius);
+					} else if (enemies[i].armour>zombies[enemies[i].name].armour*1/3) {
+						graphics.drawRect(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2-squareWidth*enemies[i].radius*2/3+squareHeight*enemies[i].lane,2*squareWidth*enemies[i].radius,squareWidth*enemies[i].radius*2/3);
+					} else if (enemies[i].armour>0) {
+						graphics.drawRect(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2-squareWidth*enemies[i].radius/3+squareHeight*enemies[i].lane,2*squareWidth*enemies[i].radius,squareWidth*enemies[i].radius/3);
+					}
 					graphics.endFill();
 					break;
 				case "umbrella":
@@ -1280,7 +1353,13 @@ function render() {
 				case "screen":
 					graphics.lineStyle(2,0x000000);
 					graphics.beginFill(0x888888);
-					graphics.drawRect(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2-squareWidth*enemies[i].radius+squareHeight*enemies[i].lane,squareWidth*enemies[i].radius,2*squareWidth*enemies[i].radius);
+					if (enemies[i].screenHp>zombies[enemies[i].name].screenHp*2/3) {
+						graphics.drawRect(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2-squareWidth*enemies[i].radius+squareHeight*enemies[i].lane,squareWidth*enemies[i].radius,2*squareWidth*enemies[i].radius);
+					} else if (enemies[i].screenHp>zombies[enemies[i].name].screenHp*1/3) {
+						graphics.drawRect(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2-squareWidth*enemies[i].radius+squareHeight*enemies[i].lane,squareWidth*enemies[i].radius*2/3,2*squareWidth*enemies[i].radius);
+					} else if (enemies[i].screenHp>0) {
+						graphics.drawRect(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2-squareWidth*enemies[i].radius+squareHeight*enemies[i].lane,squareWidth*enemies[i].radius/3,2*squareWidth*enemies[i].radius);
+					}
 					graphics.endFill();
 					break;
 			}
