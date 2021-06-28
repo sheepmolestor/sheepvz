@@ -9,6 +9,8 @@ let host = false;
 const GRID_WIDTH=9;
 const GRID_HEIGHT=8;
 
+const BALANCE = 5/GRID_HEIGHT;
+
 
 
 const PEA_RADIUS=1/8;
@@ -24,6 +26,11 @@ let squareWidth = app.screen.width/GRID_WIDTH;
 let squareHeight = app.screen.height/GRID_HEIGHT*0.8;
 
 
+/*function Random(seed) {
+  this._seed = seed % 2147483647;
+  if (this._seed <= 0) this._seed += 2147483646;
+}*/
+
 let sun=100;// temporary
 let plants = {
 pea:{
@@ -34,8 +41,8 @@ pea:{
 	home: 0,
 	lane: 0,
 	cost:100,
-	cooldown:3,
-	initCooldown:3,
+	cooldown:3*BALANCE,
+	initCooldown:3*BALANCE,
 	cooldownTimer:0,
 	range:GRID_WIDTH,
 	shooter:true,
@@ -52,8 +59,8 @@ cabbage:{
 	home: 0,
 	lane: 0,
 	cost:100,
-	cooldown:3,
-	initCooldown:3,
+	cooldown:3*BALANCE,
+	initCooldown:3*BALANCE,
 	cooldownTimer:0,
 	range:GRID_WIDTH,
 	shooter:true,
@@ -62,11 +69,48 @@ cabbage:{
 	lobbed:true,
 	name:"cabbage",
 },
+kernel: {
+	hp:300,
+	damage:10,
+	butter:40,
+	rate:3,
+	timer:1,
+	home: 0,
+	lane: 0,
+	cost:100,
+	cooldown:5*BALANCE,
+	initCooldown:5*BALANCE,
+	cooldownTimer:0,
+	range:GRID_WIDTH,
+	shooter:true,
+	eatable:true,
+	low:false,
+	lobbed:true,
+	name:"kernel",
+},
+bonk: {
+	hp:450,
+	damage:15,
+	rate:5/12,
+	timer:0.25,
+	home: 0,
+	lane: 0,
+	cost:150,
+	cooldown:3*BALANCE,
+	initCooldown:3*BALANCE,
+	cooldownTimer:0,
+	range:1.5,
+	shooter:false,
+	eatable:true,
+	low:false,
+	lobbed:true,
+	name:"bonk",
+},
 sunflower:{
 	hp:300,
 	damage:0,
 	timer:10,
-	rate:10,
+	rate:24,
 	cost:100,
 	cooldown:12,
 	initCooldown:0,
@@ -113,8 +157,8 @@ boomer:{
 	rate:3,
 	timer:1,
 	cost:250,
-	cooldown:20,
-	initCooldown:20,
+	cooldown:20*BALANCE,
+	initCooldown:20*BALANCE,
 	cooldownTimer:0,
 	range:GRID_WIDTH,
 	shooter:true,
@@ -131,6 +175,8 @@ inventory.push("sunflower");
 inventory.push("walnut");
 inventory.push("iceberg");
 inventory.push("boomer");
+inventory.push("kernel");
+inventory.push("bonk");
 for (i in inventory) {
 	plants[inventory[i]].cooldownTimer=plants[inventory[i]].initCooldown;
 }
@@ -143,7 +189,7 @@ socket.on("shovel",(x,y,tick) => {
 		tickQueue.push(["shovel",x,y]);
 		//socket.emit('shovel',x,y,host,tickCount);
 	} else {
-		socketQueue.push(["shovel",x,y,tick]);
+		//socketQueue.push(["shovel",x,y,tick]);
 	}
 });
 socket.on("host", () => {
@@ -214,8 +260,9 @@ var time=0;
 var tickCount=0;
 //var bufferTime=0;
 //var buffer = false;
+var seed=0;
 
-socket.on('done', (t,tick,s,q) => {
+socket.on('done', (t,tick,s,q,sd) => {
 	//if (ready) {
 		//if (buffer) {
 	//		console.log("OOOOOOOOOOOPS");
@@ -225,12 +272,14 @@ socket.on('done', (t,tick,s,q) => {
 	//} //else {
 		//ready = true;
 		//time=t;
+
 	if (host) {
 		//tickQueue.push(['done',tick]);
 		//console.log(tick);
 	} else {
-		socketQueue.push([q,t]);
+		socketQueue.push([q,t,sd]);
 		//console.log(tick);
+		
 	}
 	//}
 	score.text=Math.round(s/1000);
@@ -262,7 +311,7 @@ for (i = 0; i<GRID_WIDTH; i++) {
 }
 
 
-
+const ATT_SPD=0.55;
 
 let zombies = {
 	normal:{
@@ -272,7 +321,7 @@ let zombies = {
 		dist: 0,
 		attackDamage:50,
 		attackTimer:0,
-		attackSpeed:1/4,
+		attackSpeed:ATT_SPD,
 		name:"normal",
 	},
 	cone: {
@@ -282,7 +331,7 @@ let zombies = {
 		dist: 0,
 		attackDamage:50,
 		attackTimer:0,
-		attackSpeed:1/4,
+		attackSpeed:ATT_SPD,
 		name:"cone",
 	},
 	bucket: {
@@ -292,7 +341,7 @@ let zombies = {
 		dist: 0,
 		attackDamage:50,
 		attackTimer:0,
-		attackSpeed:1/4,
+		attackSpeed:ATT_SPD,
 		name:"bucket",
 	},
 	football: {
@@ -302,7 +351,7 @@ let zombies = {
 		dist:0,
 		attackDamage:50,
 		attackTimer:0,
-		attackSpeed:1/8,
+		attackSpeed:ATT_SPD/2,
 		name:"football",
 	},
 	laser: {
@@ -312,7 +361,7 @@ let zombies = {
 		dist: 0,
 		attackDamage:50,
 		attackTimer:0,
-		attackSpeed:1/4,
+		attackSpeed:ATT_SPD,
 		attacking:false,
 		cooldownTimer:0,
 		cooldown:5000,
@@ -363,6 +412,27 @@ let zombies = {
 		flying:true,
 		name:"flyingBucket",
 	},
+	umbrella: {
+		hp: 350,
+		speed: 3/10,
+		lane: 0,
+		dist: 0,
+		attackDamage:50,
+		attackTimer:0,
+		attackSpeed:ATT_SPD,
+		name:"umbrella",
+	},
+	screen: {
+		screenHp:1100,
+		hp: 350,
+		speed: 3/10,
+		lane: 0,
+		dist: 0,
+		attackDamage:50,
+		attackTimer:0,
+		attackSpeed:ATT_SPD,
+		name:"screen",
+	},
 }
 
 for (i in zombies) {
@@ -388,6 +458,7 @@ function shoot(plant) {
 			});
 			break;
 		case "cabbage":
+		case "kernel":
 			var destination=-1;
 			for (l in enemies) {
 				if (enemies[l].lane==plant.lane) {
@@ -403,20 +474,29 @@ function shoot(plant) {
 				}
 			}
 			destination=GRID_WIDTH-plant.home-0.5-destination;//distance from home
+			var pDmg = plant.damage;
+			var pName = plant.name;
+			if (plant.name=="kernel") {
+				console.log(seed + " PEEPEE");
+				if (seed<0.5) {
+					pName = "butter";
+					pDmg = plant.butter;
+				}
+			}
 			projectiles.push({
 				speed: destination,
 				home: plant.home,
 				lane: plant.lane,
-				damage: plant.damage,
+				damage: pDmg,
 				timer:1000,
 				dist: 0,
 				dest: destination,
 				lobbed:true,
-				name:"cabbage",
+				name:pName,
 			});
 			break;
 		case "sunflower":
-			sun+=25;
+			sun+=50;
 			break;
 		case "boomer":
 			var targets = [];
@@ -465,14 +545,14 @@ function shoot(plant) {
 	}
 }
 let inventorySelected = -1;
-let enemyTypes = ["laser"];//,"flyingCone","flyingBucket"];//,"cone","bucket","football"];
+let enemyTypes = ["screen","umbrella"];//,"flyingCone","flyingBucket"];//,"cone","bucket","football"];
 
 	document.addEventListener('keypress', (event) => {
 	  var name = event.key;
 	  var code = event.code;
 	  // Alert the key name and key code on keydown
 	  //alert(`Key pressed ${name} \r\n Key code value: ${code}`);
-	  sendZombie(Math.floor(Math.random()*GRID_HEIGHT),
+	  sendZombie(0,//Math.floor(Math.random()*GRID_HEIGHT),
 	  	enemyTypes[Math.floor(Math.random()*enemyTypes.length)]);
 	}, false);
 
@@ -497,7 +577,13 @@ for (i in inventory) {
 	iText.x=(squareWidth)*(i);
 	iText.y=(squareHeight)*(GRID_HEIGHT+1.5);
 	app.stage.addChild(iText);
+	var nText = new PIXI.Text(plants[inventory[i]].name);
+	nText.x=(squareWidth)*(i);
+	nText.y=(squareHeight)*(GRID_HEIGHT);
+	app.stage.addChild(nText);
 }
+
+document.addEventListener('contextmenu', e => e.preventDefault());
 
 	document.addEventListener('mouseup', (event) => {
 		var x = Math.floor(event.offsetX/squareWidth);
@@ -533,8 +619,10 @@ for (i in inventory) {
 			if (x<GRID_WIDTH&&y<GRID_HEIGHT) {
 				if (host) {
 					grid[x][y]=0;
+					tickQueue.push(["shovel",x,y]);
+				} else {
+					socket.emit("shovel",x,y,host);
 				}
-				socket.emit("shovel",x,y,host);
 			}
 		}
 	}, false);
@@ -563,11 +651,13 @@ function gameLoop(delta){
 
 	if (host) {
 		time=app.ticker.elapsedMS;
-		console.log(time);
-		state(delta);
+		
   		//tickCount=socketQueue[0][1];
 		tickQueue.push(['done',tickCount]);
-		socket.emit('done',time,tickCount,tickQueue); //ready to confirm
+		seed = Math.random();
+		console.log(seed);
+		state(delta);
+		socket.emit('done',time,tickCount,tickQueue,enemies.length==0,seed); //ready to confirm
 		tickQueue=[];
 		tickCount++;
 	} else {
@@ -575,7 +665,9 @@ function gameLoop(delta){
 	//var toBeSpliced=[];
 	if (socketQueue[0]) {
 	time = socketQueue[0][1];
-	console.log(time);
+
+	seed = socketQueue[0][2];
+	console.log(seed);
   	for (i in socketQueue[0][0]) {
 	//if (socketQueue[0][0]=='done') {
   	//	state(delta);
@@ -601,6 +693,7 @@ function gameLoop(delta){
 		  				break;
 		  			case 'done':
 		  				state(delta);
+		  				
 		  				//console.log("what");
 					  	break;
 		  			default:
@@ -775,7 +868,35 @@ function play(delta) {
 	  					case 'sunflower':
 			  				if (grid[i][j].timer<=0) {
 			  					shoot(grid[i][j]); //temporary fix
-			  					grid[i][j].timer = grid[i][j].rate;
+			  					grid[i][j].timer += grid[i][j].rate;
+			  				} else {
+			  					grid[i][j].timer-=time/1000;
+			  				}
+			  				break;
+			  			case 'bonk':
+			  				if (grid[i][j].timer<=0) {
+			  					var toBeHit=-1;
+				  				for (k in enemies) {
+				  					if (enemies[k].lane==j&&Math.abs(GRID_WIDTH-0.5-enemies[k].dist-i)<=grid[i][j].range+enemies[k].radius) {
+				  						if (toBeHit==-1){
+				  							toBeHit=k;
+				  						} else {
+				  							if (GRID_WIDTH-0.5-enemies[k].dist>i&&GRID_WIDTH-0.5-enemies[toBeHit].dist<i) {
+				  								toBeHit=k;
+				  							} else
+				  							if (enemies[toBeHit].dist<enemies[k].dist) {
+				  								toBeHit=k;
+				  							}
+				  						}
+				  					}
+				  				}
+				  				if (toBeHit!=-1) {
+				  					enemies[toBeHit].hp-=grid[i][j].damage;
+				  					if (enemies[toBeHit].hp<0&&(enemies[toBeHit].name=="flying"||enemies[toBeHit].name=="flyingCone"||enemies[toBeHit].name=="flyingBucket")) {
+				  						enemies.splice(toBeHit,1);
+				  					}
+				  				}
+			  					grid[i][j].timer += grid[i][j].rate;
 			  				} else {
 			  					grid[i][j].timer-=time/1000;
 			  				}
@@ -784,7 +905,7 @@ function play(delta) {
 			  				if (grid[i][j].timer<=0) {
 			  					var toBeFrozen=-1;
 				  				for (k in enemies) {
-				  					if (enemies[k].lane==j&&Math.abs(GRID_WIDTH-0.5-enemies[k].dist-i)<=0.5+enemies[k].radius&&!enemies[k].flying) {
+				  					if (enemies[k].lane==j&&Math.abs(GRID_WIDTH-0.5-enemies[k].dist-i)<=0.5+enemies[k].radius&&!enemies[k].flying&&!enemies[k].stun) {
 				  						if (toBeFrozen==-1){
 				  							toBeFrozen=k;
 				  						} else {
@@ -796,9 +917,9 @@ function play(delta) {
 				  				}
 				  				if (toBeFrozen!=-1) {
 				  					enemies[toBeFrozen].slow=1/2;
-				  					enemies[toBeFrozen].slowTimer=6000;
+				  					enemies[toBeFrozen].slowTimer=14000;
 				  					enemies[toBeFrozen].stun=true;
-				  					enemies[toBeFrozen].stunTimer=2000;
+				  					enemies[toBeFrozen].stunTimer=10000;
 				  						grid[i][j]=0;
 				  				}
 			  				} else {
@@ -857,11 +978,33 @@ function play(delta) {
 			  	if (toBeHit) {
 			  		for (j in toBeHit) {
 			  			if (projectiles[i].hits>=projectiles[i].pierce) {
-		  						break;
+		  					break;
 		  				}
-			  			enemies[toBeHit[j]].hp-=projectiles[i].damage;
-			  			enemies[toBeHit[j]].stun=true;
-			  			enemies[toBeHit[j]].stunTimer=100;
+		  				if (enemies[toBeHit[j]].name=="screen") {
+		  					if (projectiles[i].return) {
+		  						enemies[toBeHit[j]].hp-=projectiles[i].damage;
+		  						if (!enemies[toBeHit[j]].stun) {
+						  			enemies[toBeHit[j]].stun=true;
+						  			enemies[toBeHit[j]].stunTimer=100;
+						  		}
+		  					} else {
+			  					if (enemies[toBeHit[j]].screenHp>0) {
+					  				enemies[toBeHit[j]].screenHp-=projectiles[i].damage;
+			  					} else {
+			  						enemies[toBeHit[j]].hp-=projectiles[i].damage;
+						  			if (!enemies[toBeHit[j]].stun) {
+							  			enemies[toBeHit[j]].stun=true;
+							  			enemies[toBeHit[j]].stunTimer=100;
+							  		}
+			  					}
+			  				}
+		  				} else {
+				  			enemies[toBeHit[j]].hp-=projectiles[i].damage;
+				  			if (!enemies[toBeHit[j]].stun) {
+					  			enemies[toBeHit[j]].stun=true;
+					  			enemies[toBeHit[j]].stunTimer=100;
+					  		}
+			  			}
 				  		projectiles[i].hits++;
 			  			if (projectiles[i].return) {
 			  				projectiles[i].twiceHit.push(enemies[toBeHit[j]].id);
@@ -873,6 +1016,8 @@ function play(delta) {
 			  	}
   			}
   			break;
+  		case "butter":
+  		case "kernel":
   		case "cabbage":
   			projectiles[i].timer-=time;
   			if (projectiles[i].timer<=0) {
@@ -880,6 +1025,10 @@ function play(delta) {
   				var toBeHit = -1;
 			  	for (j in enemies) {
 			  		if (enemies[j].lane==projectiles[i].lane&&Math.abs((GRID_WIDTH-0.5-enemies[j].dist)-(projectiles[i].home+projectiles[i].dest))<(enemies[j].radius+PEA_RADIUS)){//(1/4+1/8)) { //hit(projectiles[i],enemies[j])
+			  			if (enemies[j].name=="umbrella") {
+			  				toBeHit=-1;
+			  				break;
+			  			}
 			  			if (toBeHit==-1) {
 			  				toBeHit = j;
 			  			} else {
@@ -891,6 +1040,13 @@ function play(delta) {
 			  	}
 			  	if (toBeHit!=-1) {
 			  		enemies[toBeHit].hp-=projectiles[i].damage;
+			  		if (projectiles[i].name=="butter") {
+			  			enemies[toBeHit].stun=true;
+			  			enemies[toBeHit].stunTimer=Math.max(enemies[toBeHit].stunTimer,4000);
+			  			if (enemies[toBeHit].name=="flying"||enemies[toBeHit].name=="flyingCone"||enemies[toBeHit].name=="flyingBucket") {
+			  				enemies[toBeHit].hp=0;
+			  			}
+			  		}
 			  	}
   			}
   			break;
@@ -917,7 +1073,15 @@ function play(delta) {
 			  		}
 			  	}
 			  	if (toBeHit!=-1) {
-			  		enemies[toBeHit].hp-=projectiles[i].damage;
+			  		if (enemies[toBeHit].name=="screen") {
+			  			if (enemies[toBeHit].screenHp>0) {
+			  				enemies[toBeHit].screenHp-=projectiles[i].damage;
+			  			} else {
+			  				enemies[toBeHit].hp-=projectiles[i].damage;
+			  			}
+			  		} else {
+			  			enemies[toBeHit].hp-=projectiles[i].damage;
+			  		}
 			  		toBeSpliced.push(i);
 			  	}
 		  	}
@@ -965,21 +1129,33 @@ function render() {
 				var pType = grid[i][j].name;
 				graphics.lineStyle(2,0x000000);
 				switch (pType) {
-			case 'pea':
-				graphics.beginFill(0x0000FF);
-				break;
-			case "cabbage":
-				graphics.beginFill(0x00FF00);
-				break;
-			case "sunflower":
-				graphics.beginFill(0xFFFF00);
-				break;
-			case "walnut":
-				graphics.beginFill(0x964B00);
-				break;
-			default:
-				graphics.beginFill(0x880000);
-			}
+					case 'pea':
+						graphics.beginFill(0x0000FF);
+						break;
+					case "cabbage":
+						graphics.beginFill(0x00FF00);
+						break;
+					case "sunflower":
+						graphics.beginFill(0xFFFF00);
+						break;
+					case "walnut":
+						graphics.beginFill(0x964B00);
+						break;
+					case "iceberg":
+						graphics.beginFill(0x00FFFF);
+						break;
+					case "boomer":
+						graphics.beginFill(0xC39B77);
+						break;
+					case "kernel":
+						graphics.beginFill(0xFFFFED);
+						break;
+					case "bonk":
+						graphics.beginFill(0x90EE90);
+						break;
+					default:
+						graphics.beginFill(0x880000);
+				}
 				graphics.drawCircle(squareWidth/2+i*squareWidth,squareHeight/2+j*squareHeight,squareWidth/4);
 				graphics.endFill();
 			}
@@ -992,8 +1168,8 @@ function render() {
 		} else {
 			graphics.beginFill(0xFFFFFF);
 		}
-			graphics.drawRect(i*squareWidth, GRID_HEIGHT*squareHeight, squareWidth, squareHeight*2);
-			graphics.endFill();
+		graphics.drawRect(i*squareWidth, GRID_HEIGHT*squareHeight, squareWidth, squareHeight*2);
+		graphics.endFill();
 		var pType = inventory[i];
 		switch (pType) {
 			case 'pea':
@@ -1014,11 +1190,17 @@ function render() {
 			case "boomer":
 				graphics.beginFill(0xC39B77);
 				break;
+			case "kernel":
+				graphics.beginFill(0xFFFFED);
+				break;
+			case "bonk":
+				graphics.beginFill(0x90EE90);
+				break;
 			default:
 				graphics.beginFill(0x880000);
-			}
-				graphics.drawCircle(squareWidth/2+i*squareWidth,squareHeight+GRID_HEIGHT*squareHeight,squareWidth/4);
-				graphics.endFill();
+		}
+		graphics.drawCircle(squareWidth/2+i*squareWidth,squareHeight+GRID_HEIGHT*squareHeight,squareWidth/4);
+		graphics.endFill();
 		graphics.lineStyle(0);
 		graphics.beginFill(0x000000,0.2);
 		graphics.drawRect(i*squareWidth,GRID_HEIGHT*squareHeight,squareWidth,squareHeight*2*plants[inventory[i]].cooldownTimer/plants[inventory[i]].cooldown);
@@ -1026,11 +1208,15 @@ function render() {
 	enemies.reverse();
 	for (i in enemies) {
 		var eType = enemies[i].name;
+
 		switch (eType) {
 			case "flying":
 			case "flyingCone":
 			case "flyingBucket":
 				graphics.lineStyle(2,0x00FFFF);
+				break;
+			case "laser":
+				graphics.lineStyle(2,0xFF0000);
 				break;
 			default:
 				graphics.lineStyle(2,0x000000);
@@ -1051,42 +1237,53 @@ function render() {
 		}
 		graphics.drawCircle(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth,squareHeight/2+squareHeight*enemies[i].lane,squareWidth*enemies[i].radius);
 		graphics.endFill();
-		switch (eType) {
-			case "flyingCone":
-			case "cone":
-				graphics.lineStyle(2,0x000000);
-				graphics.beginFill(0xFF8800);
-				graphics.moveTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2+squareHeight*enemies[i].lane);
-				graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth+squareWidth*enemies[i].radius,squareHeight/2+squareHeight*enemies[i].lane);
-				graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth,squareHeight*enemies[i].lane);
-				graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2+squareHeight*enemies[i].lane);
-				graphics.closePath();
-				graphics.endFill();
-				break;
-			case "flyingBucket":
-			case "bucket":
-				graphics.lineStyle(2,0x000000);
-				graphics.beginFill(0x888888);
-				graphics.drawRect(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth/4,squareHeight/2-squareWidth/4+squareHeight*enemies[i].lane,squareWidth/2,squareWidth*enemies[i].radius);
-				graphics.endFill();
-				break;
-			case "football":
-				graphics.lineStyle(2,0x000000);
-				graphics.beginFill(0xFF0000);
-				graphics.drawRect(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth/4,squareHeight/2-squareWidth/4+squareHeight*enemies[i].lane,squareWidth/2,squareWidth*enemies[i].radius);
-				graphics.endFill();
-				break;
-			case "laser":
-				graphics.lineStyle(2,0x000000);
-				graphics.beginFill(0xFF0000);
-				graphics.moveTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2+squareHeight*enemies[i].lane);
-				graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth+squareWidth*enemies[i].radius,squareHeight/2+squareHeight*enemies[i].lane);
-				graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth,squareHeight*enemies[i].lane);
-				graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2+squareHeight*enemies[i].lane);
-				graphics.closePath();
-				graphics.endFill();
-				break;
-		}
+		
+			switch (eType) {
+				case "flyingCone":
+					graphics.lineStyle(2,0x000000);
+					graphics.beginFill(0xFF8800);
+					graphics.moveTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2+squareHeight*enemies[i].lane);
+					graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth+squareWidth*enemies[i].radius,squareHeight/2+squareHeight*enemies[i].lane);
+					graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth,squareHeight*enemies[i].lane);
+					graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2+squareHeight*enemies[i].lane);
+					graphics.closePath();
+					graphics.endFill();
+					break;
+				case "cone":
+					graphics.lineStyle(2,0x000000);
+					graphics.beginFill(0xFF8800);
+					graphics.moveTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2+squareHeight*enemies[i].lane);
+					graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth+squareWidth*enemies[i].radius,squareHeight/2+squareHeight*enemies[i].lane);
+					graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth,squareHeight*enemies[i].lane);
+					graphics.lineTo(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2+squareHeight*enemies[i].lane);
+					graphics.closePath();
+					graphics.endFill();
+					break;
+				case "flyingBucket":
+				case "bucket":
+					graphics.lineStyle(2,0x000000);
+					graphics.beginFill(0x888888);
+					graphics.drawRect(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2-squareWidth*enemies[i].radius+squareHeight*enemies[i].lane,2*squareWidth*enemies[i].radius,squareWidth*enemies[i].radius);
+					graphics.endFill();
+					break;
+				case "football":
+					graphics.lineStyle(2,0x000000);
+					graphics.beginFill(0xFF0000);
+					graphics.drawRect(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2-squareWidth*enemies[i].radius+squareHeight*enemies[i].lane,2*squareWidth*enemies[i].radius,squareWidth*enemies[i].radius);
+					graphics.endFill();
+					break;
+				case "umbrella":
+					graphics.lineStyle(2,0x000000);
+					graphics.beginFill(0xADD8E6);
+					graphics.arc(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth,squareHeight/2+squareHeight*enemies[i].lane,squareWidth*enemies[i].radius+5,-Math.PI,0);
+					break;
+				case "screen":
+					graphics.lineStyle(2,0x000000);
+					graphics.beginFill(0x888888);
+					graphics.drawRect(squareWidth*GRID_WIDTH-enemies[i].dist*squareWidth-squareWidth*enemies[i].radius,squareHeight/2-squareWidth*enemies[i].radius+squareHeight*enemies[i].lane,squareWidth*enemies[i].radius,2*squareWidth*enemies[i].radius);
+					graphics.endFill();
+					break;
+			}
 	}
 	enemies.reverse();
 
@@ -1107,7 +1304,7 @@ function render() {
 
 	graphics.lineStyle(0);
 	graphics.beginFill(0xFFFFFF);
-	graphics.drawRect(squareWidth*(GRID_WIDTH-2),squareHeight*GRID_HEIGHT,squareWidth*2,squareHeight*2);
+	graphics.drawRect(squareWidth*(GRID_WIDTH-1),squareHeight*GRID_HEIGHT,squareWidth,squareHeight*2);
 }
 
 function sendZombie(lane,type) {
@@ -1117,7 +1314,7 @@ function sendZombie(lane,type) {
 function spawnZombie(lane,type) {
 	if(zombies[type]) {
 		var temp = JSON.parse(JSON.stringify(zombies[type]));
-		temp.lane = lane;
+		temp.lane = lane%GRID_HEIGHT;
 		temp.id=Math.random();
 		enemies.push(temp);
 	}
